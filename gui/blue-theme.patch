@@ -1,0 +1,87 @@
+diff --git a/assets/logo-green.svg b/assets/logo-green.svg
+index 1cd8a35..e3af946 100644
+--- a/assets/logo-green.svg
++++ b/assets/logo-green.svg
+@@ -1,9 +1,9 @@
+ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+   <!-- Connected tray mark: same depth ladder as logo.svg. The outer
+        (dominant) arch is exactly the configs-page "connected" badge color
+-       (theme.success, light value #1d9e75); the inner arches step darker. -->
+-  <path d="M12 86 L12 46 A38 38 0 0 1 88 46 L88 86 Z" fill="#1d9e75"/>
+-  <path d="M24 86 L24 50 A26 26 0 0 1 76 50 L76 86 Z" fill="#177b5b"/>
+-  <path d="M36 86 L36 55 A14 14 0 0 1 64 55 L64 86 Z" fill="#105842"/>
+-  <path d="M46 86 L46 60 A4 4 0 0 1 54 60 L54 86 Z" fill="#0a392a"/>
++       (theme.success, light value #1d7ee0); the inner arches step darker. -->
++  <path d="M12 86 L12 46 A38 38 0 0 1 88 46 L88 86 Z" fill="#1d7ee0"/>
++  <path d="M24 86 L24 50 A26 26 0 0 1 76 50 L76 86 Z" fill="#1766a8"/>
++  <path d="M36 86 L36 55 A14 14 0 0 1 64 55 L64 86 Z" fill="#104a7b"/>
++  <path d="M46 86 L46 60 A4 4 0 0 1 54 60 L54 86 Z" fill="#0a2a4f"/>
+ </svg>
+diff --git a/qml/Main.qml b/qml/Main.qml
+index 05c4efe..8eea9c7 100644
+--- a/qml/Main.qml
++++ b/qml/Main.qml
+@@ -314,35 +314,35 @@ Window {
+         readonly property bool dark: backend.themeMode === "dark"
+                                      || (backend.themeMode === "system" && win.systemDark)
+         // Pure neutral gray ramp — true monochrome (R = G = B), no tint.
+-        readonly property color bg: dark ? "#181818" : "#ececec"
+-        readonly property color surface: dark ? "#262626" : "#e2e2e2"
+-        readonly property color tile: dark ? "#202020" : "#d8d8d8"
+-        readonly property color inputBg: dark ? "#101010" : "#d6d6d6" // darker than the card
++        readonly property color bg: dark ? "#0f1420" : "#edf1f8"
++        readonly property color surface: dark ? "#1a2130" : "#e2e8f3"
++        readonly property color tile: dark ? "#151b29" : "#d9e1ef"
++        readonly property color inputBg: dark ? "#0b0f19" : "#d4ddef" // darker than the card
+         // A clearly visible outline for input fields (the plain border is too
+         // faint against the light background).
+-        readonly property color inputBorder: dark ? "#3a3a3a" : "#c2c2c2"
+-        readonly property color text: dark ? "#eaeaea" : "#1b1b1b"
+-        readonly property color textDim: dark ? "#9a9a9a" : "#6b6b6b"
+-        readonly property color textFaint: dark ? "#6a6a6a" : "#9a9a9a"
+-        readonly property color accent: dark ? "#b0b0b0" : "#4f4f4f"
++        readonly property color inputBorder: dark ? "#2e3a52" : "#b0bed6"
++        readonly property color text: dark ? "#e9eef7" : "#131a28"
++        readonly property color textDim: dark ? "#93a1b9" : "#52617d"
++        readonly property color textFaint: dark ? "#5d6b84" : "#8a97ad"
++        readonly property color accent: dark ? "#4f8cff" : "#2563eb"
+         // Text on an accent fill. White on the light dark-theme accent read at about
+         // 2:1, so the editor's Save looked disabled next to Cancel. Not "onAccent":
+         // beside a property called accent, QML takes that name for the handler of
+         // accent's change signal, and the colour was left black in both themes.
+-        readonly property color accentText: dark ? "#181818" : "#ffffff"
+-        readonly property color border: dark ? "#2e2e2e" : "#e5e5e5"
++        readonly property color accentText: "#ffffff"
++        readonly property color border: dark ? "#262f42" : "#d6dfec"
+         // Hover fill for controls that rest on surface: a step further from the
+         // page, as rows take from bg to surface. Hovering to border was 3 levels
+         // in the light theme, which nobody can see.
+-        readonly property color surfaceHover: dark ? "#2e2e2e" : "#d8d8d8"
++        readonly property color surfaceHover: dark ? "#263250" : "#ccd8ea"
+         // Off-state track for switches: clearly darker than the (light) accent
+         // in dark mode so on/off don't blur together.
+-        readonly property color toggleOff: dark ? "#3a3a3a" : "#c4c4c4"
++        readonly property color toggleOff: dark ? "#33405c" : "#b7c3d8"
+         readonly property color success: dark ? "#3fbf93" : "#1d9e75"
+         readonly property color warn: dark ? "#d99634" : "#ba7517"
+         readonly property color danger: dark ? "#e06a6a" : "#a32d2d"
+-        readonly property color infoBg: dark ? Qt.rgba(0.69, 0.69, 0.69, 0.16)
+-                                             : Qt.rgba(0.31, 0.31, 0.31, 0.12)
++        readonly property color infoBg: dark ? Qt.rgba(0.31, 0.55, 1.0, 0.16)
++                                             : Qt.rgba(0.15, 0.39, 0.92, 0.10)
+     }
+ 
+     property int currentPage: 0
+diff --git a/qml/components/WindowControls.qml b/qml/components/WindowControls.qml
+index bd7f5ca..76b65ed 100644
+--- a/qml/components/WindowControls.qml
++++ b/qml/components/WindowControls.qml
+@@ -118,7 +118,7 @@ Item {
+                     if (pop) {
+                         if (area.containsMouse)
+                             return Qt.rgba(g.r, g.g, g.b, area.pressed ? 0.10 : (controls.windowActive ? 0.20 : 0.10))
+-                        return cell.isClose && controls.windowActive ? "#f28c2a" : "transparent"
++                        return cell.isClose && controls.windowActive ? theme.danger : "transparent"
+                     }
+                     return Qt.rgba(g.r, g.g, g.b, area.pressed ? 0.30 : area.containsMouse ? 0.15 : 0.10)
+                 }

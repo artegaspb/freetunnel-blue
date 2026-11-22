@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="FreeTunnel" Manufacturer="FreeTunnel" Version="1.2.0"
+           Language="1033" Codepage="1252" UpgradeCode="9f4c3a2b-7d6e-4a1f-9c8b-3e5d2a1f0001">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Feature Id="ProductFeature" Title="FreeTunnel" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+    </Feature>
+    <UI>
+      <UIRef Id="WixUI_Minimal" />
+      <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    </UI>
+  </Product>
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="FreeTunnel" />
+      </Directory>
+    </Directory>
+  </Fragment>
+</Wix>

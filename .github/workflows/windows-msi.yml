@@ -1,0 +1,133 @@
+name: Build Windows MSI (blue theme)
+# Запускать вручную (workflow_dispatch) в форке freetunnel с наложенным
+# патчем gui/blue-theme.patch. Артефакт: MSI + NSIS Setup.exe.
+on:
+  workflow_dispatch:
+
+env:
+  UPSTREAM_REPO: TrustTunnel/TrustTunnelClient
+
+jobs:
+  msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: client
+          fetch-depth: 0
+
+      - name: Apply blue theme
+        shell: bash
+        run: git -C client apply --check gui/blue-theme.patch && git -C client apply gui/blue-theme.patch
+
+      - name: Read pinned upstream ref
+        id: upstream_ref
+        shell: bash
+        run: echo "value=$(tr -d '[:space:]' < client/scripts/upstream_ref.txt)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ steps.upstream_ref.outputs.value }}
+          path: upstream
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Inject client into upstream tree
+        shell: bash
+        run: |
+          set -eux
+          rm -rf upstream/FreeTunnel
+          mkdir -p upstream/FreeTunnel
+          (cd client && tar --exclude='./.git' -cf - .) | (cd upstream/FreeTunnel && tar -xf -)
+          {
+            printf '\n# --- injected by FreeTunnel CI ---\n'
+            printf 'if (BUILD_TRUSTTUNNEL_QT AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/FreeTunnel/CMakeLists.txt")\n'
+            printf '    add_subdirectory(FreeTunnel)\n'
+            printf 'endif ()\n'
+          } >> upstream/CMakeLists.txt
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Apply the vendored core patches
+        shell: bash
+        run: |
+          set -eu
+          for p in client/vendor/trusttunnel/*.patch; do
+            patch -p1 --fuzz=0 -d upstream < "$p"
+          done
+
+      - name: Install patched Qt
+        uses: ./client/.github/actions/qt
+        with:
+          setup-python: false
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Bootstrap conan dependencies
+        working-directory: upstream
+        shell: bash
+        run: ./scripts/bootstrap_conan_deps.py
+
+      - name: Export patched boringssl recipe
+        shell: bash
+        run: bash client/scripts/export-patched-boringssl.sh
+
+      - name: Prepare conan profile
+        run: |
+          conan profile detect --force
+          conan config install-pkg cmake-deployer 2>$null || true
+
+      - name: Configure (Windows)
+        shell: bash
+        run: >
+          cmake -S upstream -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DIPV6_UNAVAILABLE=ON -DDISABLE_HTTP3=OFF
+          -DBUILD_TRUSTTUNNEL_QT=ON
+          -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: cmake --build build --target FreeTunnel --config RelWithDebInfo -j 4
+
+      - name: Deploy Qt runtime (windeployqt)
+        shell: bash
+        run: |
+          "$QT_ROOT_DIR/bin/windeployqt.exe" build/FreeTunnel/FreeTunnel.exe \
+            --qmldir client/qml --release
+
+      - name: Build NSIS Setup.exe
+        shell: bash
+        run: |
+          nsis="C:/Program Files (x86)/NSIS/makensis.exe"
+          test -f "$nsis" || { echo "NSIS missing"; exit 1; }
+          ls client/win/ 2>/dev/null | head -3
+          # NSIS-скрипт лежит в репозитории freetunnel (client/win/*.nsi)
+          "$nsis" $(ls client/win/*.nsi | head -1)
+
+      - name: Build MSI (WiX 3)
+        shell: bash
+        run: |
+          set -eux
+          curl -fsSL -o wix.zip https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip
+          unzip -q wix.zip -d wix
+          WIX="wix"
+          DEPLOY="build/FreeTunnel"
+          "$WIX/heat.exe" dir "$DEPLOY" -gg -g1 -sfrag -srd -sreg \
+            -dr INSTALLFOLDER -cg AppFiles -var var.SourceDir -out appfiles.wxs
+          echo "<?xml version=\"1.0\"?><Include><?define SourceDir=$(cygpath -w "$DEPLOY")?></Include>" > vars.wxi
+          "$WIX/candle.exe" -ext WixUtilExtension -arch x64 client/gui/product.wxs appfiles.wxs
+          "$WIX/light.exe" -ext WixUIExtension -ext WixUtilExtension -out FreeTunnel.msi \
+            product.wixobj appfiles.wixobj
+          mkdir -p out
+          cp FreeTunnel.msi out/
+          cp build/FreeTunnel/*.exe out/ 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: freetunnel-windows-x86_64-msi
+          path: out/
