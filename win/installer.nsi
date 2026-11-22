@@ -1,4 +1,4 @@
-; FreeTunnel — NSIS Installer Script
+; DPIMask — NSIS Installer Script
 ; Installs to Program Files, requests admin elevation, creates uninstaller,
 ; Start Menu shortcut, and optional Desktop shortcut.
 
@@ -15,12 +15,12 @@ Unicode true
 ;--------------------------------
 ; General
 
-!define PRODUCT_NAME      "FreeTunnel"
+!define PRODUCT_NAME      "DPIMask"
 !define PRODUCT_PUBLISHER  "pnsrc"
-!define PRODUCT_EXE        "FreeTunnel.exe"
+!define PRODUCT_EXE        "DPIMask.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
-; The helper service: FreeTunnel.exe --service, run as LocalSystem and started by
+; The helper service: DPIMask.exe --service, run as LocalSystem and started by
 ; the app, with no UAC prompt, when it connects. The name is
 ; freetunnel::kHelperServiceName (include/vpn/vpn_helper_launch.h).
 ;
@@ -33,7 +33,7 @@ Unicode true
 ; Starting it is the whole of what the app needs. Why that is safe to hand to
 ; every interactive user, and what it gives up, is in docs/security-threats.md
 ; ("The helper service on Windows").
-!define HELPER_SERVICE      "FreeTunnelHelper"
+!define HELPER_SERVICE      "DPIMaskHelper"
 !define HELPER_SERVICE_SDDL "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLORC;;;AU)(A;;CCLCSWRPLORC;;;IU)"
 
 ; Version can be overridden from the command line: makensis /DPRODUCT_VERSION=1.0.0
@@ -51,7 +51,7 @@ Unicode true
 
 ; Build dir containing compiled binaries — passed via /DBUILD_DIR=...
 !ifndef BUILD_DIR
-  !define BUILD_DIR "build\FreeTunnel"
+  !define BUILD_DIR "build\DPIMask"
 !endif
 
 ; The third-party notices go wherever the files they are about go: Qt, Wintun
@@ -64,7 +64,7 @@ Unicode true
 !endif
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "FreeTunnel-${PRODUCT_VERSION}-Setup.exe"
+OutFile "DPIMask-${PRODUCT_VERSION}-Setup.exe"
 InstallDir "$PROGRAMFILES64\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
@@ -81,7 +81,7 @@ VIAddVersionKey "FileDescription"  "${PRODUCT_NAME} installer"
 VIAddVersionKey "FileVersion"      "${PRODUCT_VERSION}"
 VIAddVersionKey "InternalName"     "${PRODUCT_NAME}"
 VIAddVersionKey "LegalCopyright"   "Licensed under the Apache License 2.0"
-VIAddVersionKey "OriginalFilename" "FreeTunnel-${PRODUCT_VERSION}-Setup.exe"
+VIAddVersionKey "OriginalFilename" "DPIMask-${PRODUCT_VERSION}-Setup.exe"
 VIAddVersionKey "ProductName"      "${PRODUCT_NAME}"
 VIAddVersionKey "ProductVersion"   "${PRODUCT_VERSION}"
 
@@ -116,10 +116,10 @@ VIAddVersionKey "ProductVersion"   "${PRODUCT_VERSION}"
 ;--------------------------------
 ; Install directory safety
 
-; Pushes "1" when $INSTDIR is new, empty or an earlier FreeTunnel install, and
+; Pushes "1" when $INSTDIR is new, empty or an earlier DPIMask install, and
 ; "0" when it already holds someone else's files. Uses $0 and $1.
 Function CheckInstallDir
-  ; New directory, or a previous FreeTunnel install being upgraded: fine.
+  ; New directory, or a previous DPIMask install being upgraded: fine.
   IfFileExists "$INSTDIR\*.*" 0 dirOk
   IfFileExists "$INSTDIR\${PRODUCT_EXE}" dirOk 0
 
@@ -148,15 +148,15 @@ Function DirectoryLeave
   Pop $0
   StrCmp $0 "1" dirAccepted
     MessageBox MB_ICONEXCLAMATION|MB_OK \
-      "$INSTDIR already contains other files.$\n$\nUninstalling FreeTunnel removes \
-this folder and everything in it, so FreeTunnel will not install into a folder \
+      "$INSTDIR already contains other files.$\n$\nUninstalling DPIMask removes \
+this folder and everything in it, so DPIMask will not install into a folder \
 it does not own. Choose an empty or new folder."
     Abort
   dirAccepted:
 FunctionEnd
 
 ; A silent install (/S) shows no pages, so the check above never ran for it and
-; /D= could put FreeTunnel into any folder at all — which the uninstaller would
+; /D= could put DPIMask into any folder at all — which the uninstaller would
 ; later delete whole. Same check, with nobody to ask: the installer stops before
 ; touching anything, with exit code 2 for whatever started it.
 Function .onInit
@@ -176,19 +176,19 @@ FunctionEnd
 !insertmacro MUI_LANGUAGE "Russian"
 
 ;--------------------------------
-; Closing a running FreeTunnel
+; Closing a running DPIMask
 
-; Close every running FreeTunnel.exe and wait until none is left. Inserted into
+; Close every running DPIMask.exe and wait until none is left. Inserted into
 ; both the install and the uninstall section; uses $0 and $1.
 ;
-; Politely first, and that matters: FreeTunnel holds a VPN tunnel and a
+; Politely first, and that matters: DPIMask holds a VPN tunnel and a
 ; privileged helper, and a forced kill leaves both up with nothing left to shut
 ; them down. taskkill without /F posts WM_CLOSE, which runs the app's own quit
 ; path — tunnel down, helper stopped, tray icon gone.
 ;
 ; Then wait for "no such process", which taskkill reports as exit code 128, and
 ; for nothing else. Any non-zero code used to count as closed, but taskkill also
-; fails on a FreeTunnel.exe that has no window to post WM_CLOSE to: the elevated
+; fails on a DPIMask.exe that has no window to post WM_CLOSE to: the elevated
 ; helper, which is the same exe and never has one, and the app itself once its
 ; window has closed while it is still shutting down. The loop then went straight
 ; on to files both still held. The helper quits by itself once the app has gone,
@@ -202,8 +202,8 @@ FunctionEnd
 ; opening file for writing" and the uninstall leave files behind. Past the cap
 ; it goes on all the same, as it did; a stuck process must not block it.
 !macro CLOSE_FREETUNNEL
-  DetailPrint "Closing FreeTunnel if it is running..."
-  ; The helper service runs FreeTunnel.exe as LocalSystem, with no window for
+  DetailPrint "Closing DPIMask if it is running..."
+  ; The helper service runs DPIMask.exe as LocalSystem, with no window for
   ; taskkill to close politely. Stopping the service is its polite close: the
   ; helper takes its tunnel down and exits, and the loop below waits for that
   ; like for the rest. Nothing to stop on a first install, which is fine.
@@ -221,7 +221,7 @@ FunctionEnd
     Sleep 500
     Goto closeLoop
   forceClose:
-    DetailPrint "FreeTunnel did not exit; closing it forcibly."
+    DetailPrint "DPIMask did not exit; closing it forcibly."
     nsExec::Exec 'taskkill /F /IM "${PRODUCT_EXE}"'
     Pop $0
     StrCpy $1 0
@@ -235,7 +235,7 @@ FunctionEnd
     Sleep 500
     Goto forceWait
   stillExiting:
-    DetailPrint "FreeTunnel is still exiting; carrying on."
+    DetailPrint "DPIMask is still exiting; carrying on."
   closed:
 !macroend
 
@@ -243,7 +243,7 @@ FunctionEnd
 ; Installer Section
 
 Section "Install"
-  ; Close a running FreeTunnel before touching a single file. Without this the
+  ; Close a running DPIMask before touching a single file. Without this the
   ; install fails partway through on "file in use" — which is what everyone
   ; upgrading over a running copy hit, whether they used the in-app updater or
   ; downloaded the installer themselves.
@@ -307,16 +307,16 @@ Section "Install"
   IntFmt $0 "0x%08X" $0
   WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "EstimatedSize" $0
 
-  ; Windows Firewall: let FreeTunnel reach its VPN server, over TCP and UDP
+  ; Windows Firewall: let DPIMask reach its VPN server, over TCP and UDP
   ; alike, where outgoing traffic is blocked unless a rule allows it.
   ;
   ; Outgoing only. An inbound rule used to sit beside this one, letting anyone on
-  ; any network, public Wi-Fi included, open connections to FreeTunnel.exe — the
+  ; any network, public Wi-Fi included, open connections to DPIMask.exe — the
   ; elevated helper as much as the app. Nothing needs it: the app and the helper
   ; listen on 127.0.0.1 only (the helper's channel, and the VPN core's DNS proxy),
   ; the single-instance channel is a named pipe, and the TUN listener moves
   ; packets through the Wintun driver, not through sockets. Loopback is not
-  ; filtered by the firewall, and replies to FreeTunnel's own connections to the
+  ; filtered by the firewall, and replies to DPIMask's own connections to the
   ; server are let in without a rule.
   ;
   ; Deleting by name removes every rule of that name in both directions, so this
@@ -329,7 +329,7 @@ Section "Install"
   ; since the folder may have changed. Either way the permissions are set again.
   ; Should any of it fail, the app finds no service it can start and asks for
   ; administrator rights through UAC, as it did before there was one.
-  DetailPrint "Registering the FreeTunnel VPN helper service..."
+  DetailPrint "Registering the DPIMask VPN helper service..."
   nsExec::ExecToLog 'sc.exe create "${HELPER_SERVICE}" binPath= "\"$INSTDIR\${PRODUCT_EXE}\" --service" type= own start= demand obj= LocalSystem DisplayName= "${PRODUCT_NAME} VPN helper"'
   Pop $0
   StrCmp $0 "0" helper_service_created
@@ -341,18 +341,18 @@ Section "Install"
   nsExec::ExecToLog 'sc.exe sdset "${HELPER_SERVICE}" "${HELPER_SERVICE_SDDL}"'
   Pop $0
   StrCmp $0 "0" +2
-    DetailPrint "The helper service could not be set up; FreeTunnel will ask for administrator rights on connect."
+    DetailPrint "The helper service could not be set up; DPIMask will ask for administrator rights on connect."
 
   ; URL protocol handlers: route freetunnel:// and tt:// links to the app
   ; (e.g. freetunnel://toggle, or a tt:// config-import link). --url-handler
   ; tells the app the URL was opened as a link, which any web page can do, and
   ; not run as a command: a link that would turn the VPN off is asked about.
   ; It goes before the URL, where nothing in the URL can take it off.
-  WriteRegStr HKLM "Software\Classes\freetunnel" "" "URL:FreeTunnel Protocol"
+  WriteRegStr HKLM "Software\Classes\freetunnel" "" "URL:DPIMask Protocol"
   WriteRegStr HKLM "Software\Classes\freetunnel" "URL Protocol" ""
   WriteRegStr HKLM "Software\Classes\freetunnel\DefaultIcon" "" "$INSTDIR\${PRODUCT_EXE},0"
   WriteRegStr HKLM "Software\Classes\freetunnel\shell\open\command" "" '"$INSTDIR\${PRODUCT_EXE}" --url-handler "%1"'
-  WriteRegStr HKLM "Software\Classes\tt" "" "URL:FreeTunnel Protocol"
+  WriteRegStr HKLM "Software\Classes\tt" "" "URL:DPIMask Protocol"
   WriteRegStr HKLM "Software\Classes\tt" "URL Protocol" ""
   WriteRegStr HKLM "Software\Classes\tt\DefaultIcon" "" "$INSTDIR\${PRODUCT_EXE},0"
   WriteRegStr HKLM "Software\Classes\tt\shell\open\command" "" '"$INSTDIR\${PRODUCT_EXE}" --url-handler "%1"'

@@ -92,12 +92,12 @@ jobs:
           -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
-        run: cmake --build build --target FreeTunnel --config RelWithDebInfo -j 4
+        run: cmake --build build --target DPIMask --config RelWithDebInfo -j 4
 
       - name: Deploy Qt runtime (windeployqt)
         shell: bash
         run: |
-          "$QT_ROOT_DIR/bin/windeployqt.exe" build/FreeTunnel/FreeTunnel.exe \
+          "$QT_ROOT_DIR/bin/windeployqt.exe" build/FreeTunnel/DPIMask.exe \
             --qmldir client/qml --release
 
       - name: Build NSIS Setup.exe
@@ -121,13 +121,13 @@ jobs:
             -dr INSTALLFOLDER -cg AppFiles -var var.SourceDir -out appfiles.wxs
           echo "<?xml version=\"1.0\"?><Include><?define SourceDir=$(cygpath -w "$DEPLOY")?></Include>" > vars.wxi
           "$WIX/candle.exe" -ext WixUtilExtension -arch x64 client/gui/product.wxs appfiles.wxs
-          "$WIX/light.exe" -ext WixUIExtension -ext WixUtilExtension -out FreeTunnel.msi \
+          "$WIX/light.exe" -ext WixUIExtension -ext WixUtilExtension -out DPIMask.msi \
             product.wixobj appfiles.wixobj
           mkdir -p out
-          cp FreeTunnel.msi out/
+          cp DPIMask.msi out/
           cp build/FreeTunnel/*.exe out/ 2>/dev/null || true
 
       - uses: actions/upload-artifact@v7
         with:
-          name: freetunnel-windows-x86_64-msi
+          name: dpimask-windows-x86_64-msi
           path: out/

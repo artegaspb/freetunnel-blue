@@ -27,12 +27,12 @@ BEGIN
         BLOCK "040904b0"  // US English, Unicode
         BEGIN
             VALUE "CompanyName",      "pnsrc"
-            VALUE "FileDescription",  "FreeTunnel VPN client"
+            VALUE "FileDescription",  "DPIMask VPN client"
             VALUE "FileVersion",      "@PROJECT_VERSION@.0"
-            VALUE "InternalName",     "FreeTunnel"
+            VALUE "InternalName",     "DPIMask"
             VALUE "LegalCopyright",   "Licensed under the Apache License 2.0"
-            VALUE "OriginalFilename", "FreeTunnel.exe"
-            VALUE "ProductName",      "FreeTunnel"
+            VALUE "OriginalFilename", "DPIMask.exe"
+            VALUE "ProductName",      "DPIMask"
             VALUE "ProductVersion",   "@PROJECT_VERSION@"
         END
     END

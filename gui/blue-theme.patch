@@ -1,3 +1,241 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d19a559..df86d59 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.16)
+-project(FreeTunnel VERSION 1.2.5 LANGUAGES CXX)
++project(DPIMask VERSION 1.2.5 LANGUAGES CXX)
+ 
+ set(CMAKE_AUTOMOC ON)
+ set(CMAKE_AUTORCC ON)
+@@ -56,8 +56,8 @@ if (WIN32)
+     include(${CMAKE_CURRENT_LIST_DIR}/cmake/QWindowKit.cmake)
+ endif ()
+ 
+-# No FreeTunnel commit is compiled in. There was one, FREETUNNEL_GIT_VERSION,
+-# that nothing read, and in CI it was not even FreeTunnel's: the client is
++# No DPIMask commit is compiled in. There was one, FREETUNNEL_GIT_VERSION,
++# that nothing read, and in CI it was not even DPIMask's: the client is
+ # copied into the upstream tree without its .git, so `git rev-parse HEAD` here
+ # answered with the core's commit.
+ set(FREETUNNEL_CORE_REF "unknown")
+@@ -89,7 +89,7 @@ if (WIN32)
+     configure_file(win/appicon.rc.in "${APP_ICON_RC}" @ONLY)
+ endif ()
+ 
+-add_executable(FreeTunnel WIN32 MACOSX_BUNDLE
++add_executable(DPIMask WIN32 MACOSX_BUNDLE
+     main.cpp
+     src/app/AppStartup.cpp
+     src/app/AppGuiMain.cpp
+@@ -198,20 +198,20 @@ add_executable(FreeTunnel WIN32 MACOSX_BUNDLE
+     ${APP_ICON_RC}
+ )
+ 
+-target_compile_definitions(FreeTunnel PRIVATE
++target_compile_definitions(DPIMask PRIVATE
+     FREETUNNEL_VERSION="${PROJECT_VERSION}"
+     FREETUNNEL_CORE_REF="${FREETUNNEL_CORE_REF}"
+ )
+ 
+ if(UNIX)
+-    target_sources(FreeTunnel PRIVATE src/vpn/installed_helper.cpp
++    target_sources(DPIMask PRIVATE src/vpn/installed_helper.cpp
+         src/vpn/installed_helper_policy.cpp src/vpn/installed_helper_launcher.cpp)
+-    target_compile_definitions(FreeTunnel PRIVATE FT_INSTALLED_HELPER)
++    target_compile_definitions(DPIMask PRIVATE FT_INSTALLED_HELPER)
+ endif()
+ 
+ # --- Build hardening -------------------------------------------------------
+ # Defense-in-depth for a process that parses untrusted network/IPC/TLV input in
+-# C++. Scoped to the FreeTunnel target only (PRIVATE) so the VPN core, built as a
++# C++. Scoped to the DPIMask target only (PRIVATE) so the VPN core, built as a
+ # parent project, is unaffected. Flags are probed before use so an unusual
+ # toolchain (e.g. Apple clang lacking -fstack-clash-protection) just skips them.
+ include(CheckCXXCompilerFlag)
+@@ -224,17 +224,17 @@ function(ft_add_cxx_flag_if_supported tgt flag)
+ endfunction()
+ 
+ if(MSVC)
+-    target_compile_options(FreeTunnel PRIVATE /W4 /guard:cf /sdl)
+-    target_link_options(FreeTunnel PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
++    target_compile_options(DPIMask PRIVATE /W4 /guard:cf /sdl)
++    target_link_options(DPIMask PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
+ else()
+-    target_compile_options(FreeTunnel PRIVATE -Wall -Wextra)
++    target_compile_options(DPIMask PRIVATE -Wall -Wextra)
+     foreach(_f -fstack-protector-strong -Wformat -Wformat-security)
+-        ft_add_cxx_flag_if_supported(FreeTunnel ${_f})
++        ft_add_cxx_flag_if_supported(DPIMask ${_f})
+     endforeach()
+     # Apple clang accepts -fstack-clash-protection but no-ops it (warns per file),
+     # so probe it only where it actually does something.
+     if(UNIX AND NOT APPLE)
+-        ft_add_cxx_flag_if_supported(FreeTunnel -fstack-clash-protection)
++        ft_add_cxx_flag_if_supported(DPIMask -fstack-clash-protection)
+         # Indirect-branch tracking / shadow stack markers (CET). Harmless on CPUs
+         # without CET, and required for the loader to enable it on those that do.
+         # The linker only marks the image as CET-enabled when EVERY input object
+@@ -242,7 +242,7 @@ else()
+         # this target's own sources.
+         # Set at the top of this file, before any target exists — see the note there.
+         # add_compile_options() only reaches targets created after it runs, and
+-        # FreeTunnel is created long before this block, so putting it here reached
++        # DPIMask is created long before this block, so putting it here reached
+         # nothing at all: the flag was probed, reported as supported, and dropped.
+     endif()
+     # _FORTIFY_SOURCE only does anything in an optimizing build, and redefining it
+@@ -271,19 +271,19 @@ int main() { return 0; }" FT_GLIBC_FORTIFY3)
+     if(FT_HAS_FORTIFY3)
+         set(_ft_fortify 3)
+     endif()
+-    message(STATUS "FreeTunnel: _FORTIFY_SOURCE=${_ft_fortify} in optimized builds")
+-    target_compile_options(FreeTunnel PRIVATE
++    message(STATUS "DPIMask: _FORTIFY_SOURCE=${_ft_fortify} in optimized builds")
++    target_compile_options(DPIMask PRIVATE
+         $<$<NOT:$<CONFIG:Debug>>:-U_FORTIFY_SOURCE>
+         $<$<NOT:$<CONFIG:Debug>>:-D_FORTIFY_SOURCE=${_ft_fortify}>)
+     if(UNIX AND NOT APPLE)
+         # Full RELRO + non-executable stack on Linux.
+-        target_link_options(FreeTunnel PRIVATE LINKER:-z,relro LINKER:-z,now LINKER:-z,noexecstack)
++        target_link_options(DPIMask PRIVATE LINKER:-z,relro LINKER:-z,now LINKER:-z,noexecstack)
+     endif()
+ endif()
+ # Position-independent executable (explicit; default on macOS, enforced on Linux).
+-set_target_properties(FreeTunnel PROPERTIES POSITION_INDEPENDENT_CODE ON)
++set_target_properties(DPIMask PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+-target_include_directories(FreeTunnel PRIVATE
++target_include_directories(DPIMask PRIVATE
+     include
+     include/app
+     include/core
+@@ -295,14 +295,14 @@ target_include_directories(FreeTunnel PRIVATE
+ if (NOT TARGET vpnlibs_trusttunnel)
+     message(FATAL_ERROR
+         "vpnlibs_trusttunnel target not found.\n"
+-        "Build FreeTunnel from inside the TrustTunnel/TrustTunnelClient tree "
++        "Build DPIMask from inside the TrustTunnel/TrustTunnelClient tree "
+         "(this directory injected as a subdirectory of the core's root CMake), "
+         "so the VPN core library is available to link against.")
+ endif()
+-target_link_libraries(FreeTunnel PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network Qt6::Svg QHotkey::QHotkey vpnlibs_trusttunnel)
++target_link_libraries(DPIMask PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network Qt6::Svg QHotkey::QHotkey vpnlibs_trusttunnel)
+ include(${CMAKE_CURRENT_LIST_DIR}/cmake/FreetunnelDeps.cmake)
+-freetunnel_link_linux_secrets(FreeTunnel)
+-target_include_directories(FreeTunnel PRIVATE
++freetunnel_link_linux_secrets(DPIMask)
++target_include_directories(DPIMask PRIVATE
+     ${TRUSTTUNNEL_REPO_ROOT}/trusttunnel/include
+     ${TRUSTTUNNEL_REPO_ROOT}/common/include
+     ${TRUSTTUNNEL_REPO_ROOT}/core/include
+@@ -310,10 +310,10 @@ target_include_directories(FreeTunnel PRIVATE
+     ${TRUSTTUNNEL_REPO_ROOT}/tcpip/include
+ )
+ 
+-set_target_properties(FreeTunnel PROPERTIES
+-    OUTPUT_NAME "FreeTunnel"
+-    MACOSX_BUNDLE_BUNDLE_NAME "FreeTunnel"
+-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.freetunnel.app"
++set_target_properties(DPIMask PROPERTIES
++    OUTPUT_NAME "DPIMask"
++    MACOSX_BUNDLE_BUNDLE_NAME "DPIMask"
++    MACOSX_BUNDLE_GUI_IDENTIFIER "com.dpimask.app"
+     MACOSX_BUNDLE_ICON_FILE "logo"
+     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+@@ -331,11 +331,11 @@ if (WIN32)
+     # iphlpapi: GetExtendedTcpTable/GetExtendedUdpTable, which is how per-app
+     # split tunnelling finds the process behind a connection on Windows.
+     # ole32/uuid: IShellLink, which is how a dropped .lnk is followed to its target.
+-    target_link_libraries(FreeTunnel PRIVATE shell32 advapi32 iphlpapi ole32 uuid)
+-    target_sources(FreeTunnel PRIVATE src/app/WindowsChrome.cpp include/app/WindowsChrome.h
++    target_link_libraries(DPIMask PRIVATE shell32 advapi32 iphlpapi ole32 uuid)
++    target_sources(DPIMask PRIVATE src/app/WindowsChrome.cpp include/app/WindowsChrome.h
+                                       src/vpn/vpn_helper_service_win.cpp)
+-    target_link_libraries(FreeTunnel PRIVATE QWindowKit::Quick)
+-    target_compile_definitions(FreeTunnel PRIVATE FT_HAVE_QWINDOWKIT)
++    target_link_libraries(DPIMask PRIVATE QWindowKit::Quick)
++    target_compile_definitions(DPIMask PRIVATE FT_HAVE_QWINDOWKIT)
+ endif()
+ 
+ # Linux: the desktop's title-bar settings come over the settings portal (QtDBus),
+@@ -343,8 +343,8 @@ endif()
+ # with an X11 client message (xcb). See src/app/DesktopChrome.cpp.
+ if (UNIX AND NOT APPLE)
+     find_package(Qt6 COMPONENTS DBus REQUIRED)
+-    target_sources(FreeTunnel PRIVATE src/app/DesktopChromeLinux.cpp src/app/DesktopChromeLinux.h)
+-    target_link_libraries(FreeTunnel PRIVATE Qt6::DBus xcb)
++    target_sources(DPIMask PRIVATE src/app/DesktopChromeLinux.cpp src/app/DesktopChromeLinux.h)
++    target_link_libraries(DPIMask PRIVATE Qt6::DBus xcb)
+ endif ()
+ 
+ # OpenSSL for in-app Ed25519 verification (UpdateChecker). On Linux the VPN
+@@ -361,14 +361,14 @@ if (UNIX AND NOT APPLE)
+             find_package(OpenSSL REQUIRED)
+         endif ()
+         # Upstream lists libcrypto before libssl; ECH needs libssl→libcrypto refs.
+-        target_link_options(FreeTunnel PRIVATE "LINKER:--start-group")
+-        target_link_libraries(FreeTunnel PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+-        target_link_options(FreeTunnel PRIVATE "LINKER:--end-group")
++        target_link_options(DPIMask PRIVATE "LINKER:--start-group")
++        target_link_libraries(DPIMask PRIVATE OpenSSL::SSL OpenSSL::Crypto)
++        target_link_options(DPIMask PRIVATE "LINKER:--end-group")
+         # Linked, so required: ReleaseVerify.cpp refuses to compile without the
+         # headers rather than quietly building an updater that verifies nothing.
+         # The release container has no distro OpenSSL, so these come only from
+         # the conan targets above.
+-        target_compile_definitions(FreeTunnel PRIVATE FT_REQUIRE_OPENSSL)
++        target_compile_definitions(DPIMask PRIVATE FT_REQUIRE_OPENSSL)
+     endif ()
+     if (NOT OpenSSL_FOUND AND NOT TARGET OpenSSL::Crypto)
+         # The HTTP/3-off path is the documented local dev build (CONTRIBUTING),
+@@ -389,35 +389,35 @@ else ()
+     # __has_include that disables the feature, so they disappear precisely when
+     # they would have fired. Fail the configure instead.
+     find_package(OpenSSL REQUIRED)
+-    target_link_libraries(FreeTunnel PRIVATE OpenSSL::Crypto)
++    target_link_libraries(DPIMask PRIVATE OpenSSL::Crypto)
+     # And the headers with it (see the Linux branch).
+-    target_compile_definitions(FreeTunnel PRIVATE FT_REQUIRE_OPENSSL)
++    target_compile_definitions(DPIMask PRIVATE FT_REQUIRE_OPENSSL)
+ endif ()
+ 
+ if (APPLE)
+     # Place macOS icon into the bundle Resources dir
+     set_source_files_properties(assets/logo.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+-    target_sources(FreeTunnel PRIVATE assets/logo.icns)
++    target_sources(DPIMask PRIVATE assets/logo.icns)
+     # Unified title bar (transparent bar + full-size content) needs a tiny bit of
+     # Objective-C++ talking to AppKit.
+-    target_sources(FreeTunnel PRIVATE src/app/MacWindow.mm include/app/MacWindow.h
++    target_sources(DPIMask PRIVATE src/app/MacWindow.mm include/app/MacWindow.h
+                                       src/app/DesktopChromeMac.mm src/app/DesktopChromeMac.h)
+-    target_link_libraries(FreeTunnel PRIVATE "-framework AppKit" "-framework Security")
++    target_link_libraries(DPIMask PRIVATE "-framework AppKit" "-framework Security")
+ endif()
+ 
+ # Bundle assets
+-add_custom_command(TARGET FreeTunnel POST_BUILD
++add_custom_command(TARGET DPIMask POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         ${CMAKE_CURRENT_LIST_DIR}/assets/logo.png
+-        $<TARGET_FILE_DIR:FreeTunnel>/assets/logo.png
++        $<TARGET_FILE_DIR:DPIMask>/assets/logo.png
+     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+         ${TRUSTTUNNEL_REPO_ROOT}/LICENSE
+-        $<TARGET_FILE_DIR:FreeTunnel>/assets/LICENSE
++        $<TARGET_FILE_DIR:DPIMask>/assets/LICENSE
+ )
+ 
+ # Lightweight, core-independent unit tests (off by default; the standalone
+ # tests/CMakeLists.txt is what CI builds directly).
+-option(BUILD_FREETUNNEL_TESTS "Build FreeTunnel unit tests" OFF)
++option(BUILD_FREETUNNEL_TESTS "Build DPIMask unit tests" OFF)
+ if (BUILD_FREETUNNEL_TESTS)
+     enable_testing()
+     add_subdirectory(tests)
 diff --git a/assets/logo-green.svg b/assets/logo-green.svg
 index 1cd8a35..e3af946 100644
 --- a/assets/logo-green.svg
@@ -17,10 +255,317 @@ index 1cd8a35..e3af946 100644
 +  <path d="M36 86 L36 55 A14 14 0 0 1 64 55 L64 86 Z" fill="#104a7b"/>
 +  <path d="M46 86 L46 60 A4 4 0 0 1 54 60 L54 86 Z" fill="#0a2a4f"/>
  </svg>
+diff --git a/i18n/freetunnel_ru.ts b/i18n/freetunnel_ru.ts
+index b9460df..2a67b1e 100644
+--- a/i18n/freetunnel_ru.ts
++++ b/i18n/freetunnel_ru.ts
+@@ -54,8 +54,8 @@
+ <context>
+     <name>Backend</name>
+     <message>
+-        <source>FreeTunnel %1 started</source>
+-        <translation>FreeTunnel %1 запущен</translation>
++        <source>DPIMask %1 started</source>
++        <translation>DPIMask %1 запущен</translation>
+     </message>
+     <message>
+         <source>Version %1 is available</source>
+@@ -254,8 +254,8 @@
+         <translation>Глобальные горячие клавиши работают только в сессии X11/Xorg: композитор Wayland оставляет глобальные сочетания себе, и запуск через XWayland этого не меняет.</translation>
+     </message>
+     <message>
+-        <source>Update downloaded — closing FreeTunnel to install it</source>
+-        <translation>Обновление загружено — закрываем FreeTunnel для установки</translation>
++        <source>Update downloaded — closing DPIMask to install it</source>
++        <translation>Обновление загружено — закрываем DPIMask для установки</translation>
+     </message>
+     <message>
+         <source>Enter a program name (firefox) or the full path to one</source>
+@@ -286,8 +286,8 @@
+         <translation>У горячей клавиши «%1» (%2) нет Ctrl, Alt или Meta, и она отняла бы эту клавишу у всех остальных приложений — пропущена.</translation>
+     </message>
+     <message>
+-        <source>Version %1 is available — installing it closes FreeTunnel</source>
+-        <translation>Доступна версия %1 — при установке FreeTunnel закроется</translation>
++        <source>Version %1 is available — installing it closes DPIMask</source>
++        <translation>Доступна версия %1 — при установке DPIMask закроется</translation>
+     </message>
+     <message>
+         <source>The downloaded installer could not be started</source>
+@@ -306,12 +306,12 @@
+         <translation>Client random должен быть в hex-формате целыми байтами (чётное число цифр, не больше 64), можно с /маской</translation>
+     </message>
+     <message>
+-        <source>The new version could not be started — FreeTunnel was left as it was.</source>
+-        <translation>Не удалось запустить новую версию — FreeTunnel остался прежним.</translation>
++        <source>The new version could not be started — DPIMask was left as it was.</source>
++        <translation>Не удалось запустить новую версию — DPIMask остался прежним.</translation>
+     </message>
+     <message>
+-        <source>FreeTunnel could not take back the name later launches look for (%1), so opening it again may start a second FreeTunnel. Restart FreeTunnel to fix this.</source>
+-        <translation>FreeTunnel не смог снова занять имя, по которому его находят следующие запуски (%1), поэтому при повторном открытии может запуститься второй FreeTunnel. Чтобы это исправить, перезапустите FreeTunnel.</translation>
++        <source>DPIMask could not take back the name later launches look for (%1), so opening it again may start a second DPIMask. Restart DPIMask to fix this.</source>
++        <translation>DPIMask не смог снова занять имя, по которому его находят следующие запуски (%1), поэтому при повторном открытии может запуститься второй DPIMask. Чтобы это исправить, перезапустите DPIMask.</translation>
+     </message>
+     <message>
+         <source>That file is a link to another file. Choose the file itself, or paste the certificate into the field.</source>
+@@ -370,8 +370,8 @@
+         <translation>Неверный домен или подсеть: %1. Подсеть с /0 на конце — это все адреса: в режиме «Без VPN» она вывела бы весь их трафик из туннеля.</translation>
+     </message>
+     <message>
+-        <source>No network connection. FreeTunnel will connect as soon as there is one.</source>
+-        <translation>Нет подключения к сети. FreeTunnel подключится, как только оно появится.</translation>
++        <source>No network connection. DPIMask will connect as soon as there is one.</source>
++        <translation>Нет подключения к сети. DPIMask подключится, как только оно появится.</translation>
+     </message>
+     <message>
+         <source>Config added: %1.</source>
+@@ -453,12 +453,12 @@
+ <context>
+     <name>ConfigImport</name>
+     <message>
+-        <source>Subscription links aren&apos;t supported yet. Ask your provider for a regular link, or update FreeTunnel when subscriptions arrive.</source>
+-        <translation>Ссылки-подписки пока не поддерживаются. Попросите у провайдера обычную ссылку или обновите FreeTunnel, когда появятся подписки.</translation>
++        <source>Subscription links aren&apos;t supported yet. Ask your provider for a regular link, or update DPIMask when subscriptions arrive.</source>
++        <translation>Ссылки-подписки пока не поддерживаются. Попросите у провайдера обычную ссылку или обновите DPIMask, когда появятся подписки.</translation>
+     </message>
+     <message>
+-        <source>This server needs a newer TrustTunnel core than this version of FreeTunnel uses.</source>
+-        <translation>Этому серверу нужно ядро TrustTunnel новее, чем в этой версии FreeTunnel.</translation>
++        <source>This server needs a newer TrustTunnel core than this version of DPIMask uses.</source>
++        <translation>Этому серверу нужно ядро TrustTunnel новее, чем в этой версии DPIMask.</translation>
+     </message>
+     <message>
+         <source>Subscriptions aren&apos;t supported yet: this server won&apos;t update itself, and its subscription address isn&apos;t saved.</source>
+@@ -994,16 +994,16 @@
+         <translation>Подключить</translation>
+     </message>
+     <message>
+-        <source>Show FreeTunnel</source>
+-        <translation>Показать FreeTunnel</translation>
++        <source>Show DPIMask</source>
++        <translation>Показать DPIMask</translation>
+     </message>
+     <message>
+         <source>Quit</source>
+         <translation>Выход</translation>
+     </message>
+     <message>
+-        <source>FreeTunnel — %1</source>
+-        <translation>FreeTunnel — %1</translation>
++        <source>DPIMask — %1</source>
++        <translation>DPIMask — %1</translation>
+     </message>
+     <message>
+         <source>Disconnecting…</source>
+@@ -1069,8 +1069,8 @@
+         <translation>Повышение прав отменено или не удалось</translation>
+     </message>
+     <message>
+-        <source>wintun.dll is missing next to FreeTunnel.exe (%1). Reinstall from the official installer.</source>
+-        <translation>Рядом с FreeTunnel.exe нет wintun.dll (%1). Переустановите приложение через официальный установщик.</translation>
++        <source>wintun.dll is missing next to DPIMask.exe (%1). Reinstall from the official installer.</source>
++        <translation>Рядом с DPIMask.exe нет wintun.dll (%1). Переустановите приложение через официальный установщик.</translation>
+     </message>
+     <message>
+         <source>The connection is using an unusual number of system resources. The tunnel is being kept up because the kill switch is on — reconnect manually when convenient.</source>
+@@ -1421,12 +1421,12 @@
+         <translation>Сервер прислал некорректное обновление</translation>
+     </message>
+     <message>
+-        <source>Update FreeTunnel to read this subscription</source>
+-        <translation>Обновите FreeTunnel, чтобы прочитать эту подписку</translation>
++        <source>Update DPIMask to read this subscription</source>
++        <translation>Обновите DPIMask, чтобы прочитать эту подписку</translation>
+     </message>
+     <message>
+-        <source>This subscription needs a newer TrustTunnel core than this version of FreeTunnel uses</source>
+-        <translation>Этой подписке нужно ядро TrustTunnel новее, чем в этой версии FreeTunnel</translation>
++        <source>This subscription needs a newer TrustTunnel core than this version of DPIMask uses</source>
++        <translation>Этой подписке нужно ядро TrustTunnel новее, чем в этой версии DPIMask</translation>
+     </message>
+ </context>
+ <context>
+@@ -1558,8 +1558,8 @@
+         <translation>VPN-помощник отправил слишком много данных</translation>
+     </message>
+     <message>
+-        <source>The process answering on the helper port could not prove it is the FreeTunnel helper — refusing to send the config.</source>
+-        <translation>Процесс, ответивший на порту помощника, не подтвердил, что он — помощник FreeTunnel. Конфигурация ему не отправлена.</translation>
++        <source>The process answering on the helper port could not prove it is the DPIMask helper — refusing to send the config.</source>
++        <translation>Процесс, ответивший на порту помощника, не подтвердил, что он — помощник DPIMask. Конфигурация ему не отправлена.</translation>
+     </message>
+     <message>
+         <source>VPN helper sent an invalid challenge</source>
+diff --git a/include/core/AppImagePath.h b/include/core/AppImagePath.h
+index f21a92c..c238c5e 100644
+--- a/include/core/AppImagePath.h
++++ b/include/core/AppImagePath.h
+@@ -13,7 +13,7 @@
+ // environment (a shell profile, a .desktop file, a wrapper script) picks both
+ // sides of the comparison. The elevation path made this a privilege escalation:
+ // $APPDIR only had to be a *path prefix* of the running executable, so
+-// APPDIR=/usr passed for an ordinary /usr/bin/FreeTunnel install, and whatever
++// APPDIR=/usr passed for an ordinary /usr/bin/DPIMask install, and whatever
+ // $APPIMAGE named was then handed to pkexec and executed as root.
+ //
+ // So ask the kernel instead. The AppImage runtime mounts the payload over FUSE
+diff --git a/include/core/ConfigToml.h b/include/core/ConfigToml.h
+index 1df5b98..0621a01 100644
+--- a/include/core/ConfigToml.h
++++ b/include/core/ConfigToml.h
+@@ -58,7 +58,7 @@ ConfigToml parseConfigToml(const QString &toml);
+ // and nothing else changed: the endpoint's export writes it as `subscription_url`
+ // at the top, which lands in [endpoint] once pasted under it, and TrustTunnel's
+ // client as an [endpoint.subscription] table. The address holds the VPN password
+-// in plain text, and FreeTunnel cannot use it yet. *removed says whether there was
++// in plain text, and DPIMask cannot use it yet. *removed says whether there was
+ // one; the text comes back as it was when there was not.
+ QString withoutSubscription(const QString &toml, bool *removed = nullptr);
+ 
+@@ -134,7 +134,7 @@ bool isCertificateDer(const QByteArray &der);
+ // The certificates of a PEM text, and nothing else. A block is kept, exactly as
+ // written, when its label is CERTIFICATE (or X509 CERTIFICATE, which OpenSSL
+ // reads as well), its body is base64 and it decodes to one or more certificates,
+-// one after another (isCertificateDer), as FreeTunnel 1.1.9 and earlier wrote a
++// one after another (isCertificateDer), as DPIMask 1.1.9 and earlier wrote a
+ // link's chain. Anything else is left out: a private key above all, which
+ // a file that combines the certificate with its key carries beside it, but also
+ // another label, a damaged block and any text outside the blocks. *dropped says
+diff --git a/include/core/DeepLink.h b/include/core/DeepLink.h
+index 50410fd..8273bb2 100644
+--- a/include/core/DeepLink.h
++++ b/include/core/DeepLink.h
+@@ -20,7 +20,7 @@ namespace freetunnel {
+ inline constexpr int kDeepLinkMaxVersion = 2;
+ 
+ // The version this client writes on its own links. Not the maximum: version 2
+-// only adds tags these links never carry, and FreeTunnel 1.2.3 and earlier and
++// only adds tags these links never carry, and DPIMask 1.2.3 and earlier and
+ // TrustTunnel's clients up to 1.1.11 refuse a version 2 link outright, so writing
+ // it would only stop them reading a link they understand in full.
+ inline constexpr int kDeepLinkWriteVersion = 1;
+diff --git a/include/core/ProcessLookup.h b/include/core/ProcessLookup.h
+index 6b293fa..c77a4e1 100644
+--- a/include/core/ProcessLookup.h
++++ b/include/core/ProcessLookup.h
+@@ -70,7 +70,7 @@ constexpr qint64 kAmbiguousOwner = -2;
+ //   /proc/net fallback and Windows. It is taken to carry IPv4 as well, and so
+ //   answers an IPv4 socket on the same port number.
+ // - A connection whose source address was rewritten before it reached the tunnel
+-//   (NAT on the way out, which neither FreeTunnel nor the core sets up). Its
++//   (NAT on the way out, which neither DPIMask nor the core sets up). Its
+ //   address matches no socket, and it is answered "nobody".
+ class SocketOwnerTable {
+ public:
+diff --git a/include/core/SubscriptionStore.h b/include/core/SubscriptionStore.h
+index 60aa37e..183f784 100644
+--- a/include/core/SubscriptionStore.h
++++ b/include/core/SubscriptionStore.h
+@@ -1,7 +1,7 @@
+ // cppcheck-suppress-file missingIncludeSystem
+ #pragma once
+ 
+-// What FreeTunnel keeps about each config that updates from a TrustTunnel
++// What DPIMask keeps about each config that updates from a TrustTunnel
+ // subscription, besides the config itself, in subscriptions.json next to
+ // configs.json. Nothing in it is secret: the subscription's address holds the VPN
+ // password, and is kept in the credential store under
+diff --git a/include/vpn/vpn_helper_launch.h b/include/vpn/vpn_helper_launch.h
+index 9fdce42..e2530da 100644
+--- a/include/vpn/vpn_helper_launch.h
++++ b/include/vpn/vpn_helper_launch.h
+@@ -60,7 +60,7 @@ QString windowsHelperParameters(quint16 port, const QString &tokenPath);
+ // The Windows service the installer registers to run the helper as LocalSystem
+ // (win/installer.nsi). Started on demand by the GUI, without a UAC prompt; see
+ // docs/security-threats.md.
+-inline constexpr char kHelperServiceName[] = "FreeTunnelHelper";
++inline constexpr char kHelperServiceName[] = "DPIMaskHelper";
+ 
+ // The arguments the GUI hands StartServiceW for the helper service. The service
+ // control manager puts the service name in front of them, and ServiceMain passes
+diff --git a/include/vpn/vpn_helper_server.h b/include/vpn/vpn_helper_server.h
+index ea59201..dd0af68 100644
+--- a/include/vpn/vpn_helper_server.h
++++ b/include/vpn/vpn_helper_server.h
+@@ -7,7 +7,7 @@
+ 
+ class QCoreApplication;
+ 
+-// Entry point for the privileged helper mode (FreeTunnel --helper --port P
++// Entry point for the privileged helper mode (DPIMask --helper --port P
+ // --token-file F). Reads the one-time auth token from the 0600 file F (kept
+ // off argv so it isn't exposed via /proc/<pid>/cmdline), then runs a headless
+ // QCoreApplication that drives the real VPN core and exposes it to the
+@@ -28,7 +28,7 @@ struct VpnHelperRunOptions {
+ int runVpnHelper(int argc, char **argv, const VpnHelperRunOptions &options);
+ 
+ #if defined(_WIN32)
+-// Entry point for FreeTunnel --service: the command line the installer registers
++// Entry point for DPIMask --service: the command line the installer registers
+ // for the helper service. Hands the process to the service control manager,
+ // whose ServiceMain runs the helper with the arguments StartServiceW was given.
+ // Returns non-zero at once when the process was not started as a service.
 diff --git a/qml/Main.qml b/qml/Main.qml
-index 05c4efe..8eea9c7 100644
+index 05c4efe..168b573 100644
 --- a/qml/Main.qml
 +++ b/qml/Main.qml
+@@ -4,7 +4,7 @@ import QtQuick.Layouts
+ import Qt.labs.platform as Platform
+ import "components"
+ 
+-// FreeTunnel main window: centered top nav + pages, plus back-arrow sub-screens.
++// DPIMask main window: centered top nav + pages, plus back-arrow sub-screens.
+ // Consumes a `backend` context object injected from C++ (main.cpp).
+ Window {
+     id: win
+@@ -22,7 +22,7 @@ Window {
+     minimumWidth: windowsAgent ? 0 : 400
+     minimumHeight: windowsAgent ? 0 : 460
+     color: theme.bg
+-    title: "FreeTunnel"
++    title: "DPIMask"
+ 
+     // macOS keeps its native (unified) title bar; Linux/Windows go frameless
+     // with our own window controls + drag/resize, so the chrome matches macOS.
+@@ -35,7 +35,7 @@ Window {
+             : Math.max(controlsLeft.visible ? controlsLeft.width + controlsLeft.sideInset : 0,
+                        controlsRight.visible ? controlsRight.width + controlsRight.sideInset : 0)
+     // Whether the chrome should be dark. The Windows window agent follows it, so
+-    // the thin system border and the window menu match FreeTunnel's own theme
++    // the thin system border and the window menu match DPIMask's own theme
+     // rather than the OS setting.
+     readonly property bool darkChrome: theme.dark
+ 
+@@ -207,8 +207,8 @@ Window {
+             // tried there, and it drew a plain white mark that said nothing about the
+             // state at a glance, which is what this icon is for.
+             icon.source: backend.connected ? "qrc:/assets/logo-green.svg" : "qrc:/assets/logo-dim.svg"
+-            tooltip: backend.connected ? qsTr("FreeTunnel — %1").arg(backend.activeConfig)
+-                                        : "FreeTunnel"
++            tooltip: backend.connected ? qsTr("DPIMask — %1").arg(backend.activeConfig)
++                                        : "DPIMask"
+             // Right-click opens the menu (below). The icon's own gesture brings the
+             // window forward: a left click on Windows, a double-click too. On Linux
+             // every host reports it as Trigger, never DoubleClick — Qt's
+@@ -220,7 +220,7 @@ Window {
+             // emits activated() from NSMenuDidBeginTracking and derives the reason from
+             // NSApp.currentEvent.clickCount — a second quick click on the icon arrives
+             // as DoubleClick even though the user only opened the menu, which popped the
+-            // hidden window back open. The menu's «Show FreeTunnel» item and the Dock
++            // hidden window back open. The menu's «Show DPIMask» item and the Dock
+             // icon are the macOS ways back.
+             onActivated: function(reason) {
+                 if (win.isMac)
+@@ -285,7 +285,7 @@ Window {
+                 }
+                 Platform.MenuSeparator { visible: backend.configs.length > 0 }
+                 Platform.MenuItem {
+-                    text: qsTr("Show FreeTunnel")
++                    text: qsTr("Show DPIMask")
+                     onTriggered: desktop.bringToFront(win)
+                 }
+                 Platform.MenuItem {
 @@ -314,35 +314,35 @@ Window {
          readonly property bool dark: backend.themeMode === "dark"
                                       || (backend.themeMode === "system" && win.systemDark)
@@ -72,6 +617,46 @@ index 05c4efe..8eea9c7 100644
      }
  
      property int currentPage: 0
+@@ -542,7 +542,7 @@ Window {
+         if (desktop.hasTray(win.tray)) {
+             // Windows: the ✕ minimises to the taskbar, or hides to the tray when
+             // the user has asked it to. Hiding is the same call Linux makes; the
+-            // window comes back from the tray icon or its «Show FreeTunnel».
++            // window comes back from the tray icon or its «Show DPIMask».
+             if (Qt.platform.os === "windows" && backend.minimizeToTray)
+                 desktop.hideToTray(win)
+             else
+@@ -608,7 +608,7 @@ Window {
+     }
+ 
+     // A 1px edge on Linux. A frameless window gets no border from the window
+-    // manager, and on KDE no shadow either, so a dark FreeTunnel over a dark window
++    // manager, and on KDE no shadow either, so a dark DPIMask over a dark window
+     // had no visible edge at all. Drawn inside the window — nothing outside it
+     // belongs to us — and in libadwaita's own inner-outline colour, which is also
+     // what GNOME draws for its client-side windows. Not when maximised, where every
+@@ -732,7 +732,7 @@ Window {
+             // that action: a connection retrying in the background reports each
+             // failed try, and a notification for every one of them is noise.
+             if (win.errorsGoToTray && win.tray && win.tray.available && win.tray.supportsMessages)
+-                win.tray.showMessage("FreeTunnel", msg)
++                win.tray.showMessage("DPIMask", msg)
+             win.trayActionWaiting = false
+         }
+         // The action has come to rest: connected (again, for a switch, which
+diff --git a/qml/components/HotkeyField.qml b/qml/components/HotkeyField.qml
+index 7a570a5..39edb71 100644
+--- a/qml/components/HotkeyField.qml
++++ b/qml/components/HotkeyField.qml
+@@ -17,7 +17,7 @@ Item {
+     property bool needsModifier: false
+     onCapturingChanged: {
+         needsModifier = false
+-        // A combo FreeTunnel has registered is handed to that registration and
++        // A combo DPIMask has registered is handed to that registration and
+         // never reaches the field, so pressing it ran its action instead.
+         backend.suspendHotkeys(capturing)
+     }
 diff --git a/qml/components/WindowControls.qml b/qml/components/WindowControls.qml
 index bd7f5ca..76b65ed 100644
 --- a/qml/components/WindowControls.qml
@@ -85,3 +670,676 @@ index bd7f5ca..76b65ed 100644
                      }
                      return Qt.rgba(g.r, g.g, g.b, area.pressed ? 0.30 : area.containsMouse ? 0.15 : 0.10)
                  }
+diff --git a/qml/pages/SettingsPage.qml b/qml/pages/SettingsPage.qml
+index 9d09237..8712bdc 100644
+--- a/qml/pages/SettingsPage.qml
++++ b/qml/pages/SettingsPage.qml
+@@ -391,7 +391,7 @@ Item {
+             Row { Layout.alignment: Qt.AlignHCenter; spacing: 0
+                   Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: implicitWidth
+                   clip: true
+-                Text { text: "FreeTunnel " + backend.appVersion; font.pixelSize: 12
++                Text { text: "DPIMask " + backend.appVersion; font.pixelSize: 12
+                        color: ftMa.containsMouse ? theme.accent : theme.textFaint; font.underline: ftMa.containsMouse
+                        MouseArea { id: ftMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: backend.openUrl("https://github.com/dimmmmmmmer/freetunnel") } }
+diff --git a/src/app/AppGuiMain.cpp b/src/app/AppGuiMain.cpp
+index 51edc11..f9dfa9e 100644
+--- a/src/app/AppGuiMain.cpp
++++ b/src/app/AppGuiMain.cpp
+@@ -32,9 +32,9 @@ namespace freetunnel {
+ 
+ static void applyAppBranding(QGuiApplication &app)
+ {
+-    app.setApplicationName(QStringLiteral("FreeTunnel"));
+-    app.setOrganizationName(QStringLiteral("FreeTunnel"));
+-    app.setApplicationDisplayName(QStringLiteral("FreeTunnel"));
++    app.setApplicationName(QStringLiteral("DPIMask"));
++    app.setOrganizationName(QStringLiteral("DPIMask"));
++    app.setApplicationDisplayName(QStringLiteral("DPIMask"));
+ #ifndef Q_OS_MACOS
+     // macOS uses logo.icns from the bundle; setWindowIcon() there overrides the Dock
+     // icon when the window opens (see setupMacDockIcon).
+@@ -58,7 +58,7 @@ static std::optional<int> handToRunningInstance(const QString &controlArg, QStri
+         // Ours is running and could not be told. Never start beside it: two
+         // copies would drive one VPN, and this one would take the socket name
+         // over and leave that one reachable by nothing.
+-        qWarning("FreeTunnel is already running but did not take the command; "
++        qWarning("DPIMask is already running but did not take the command; "
+                  "not starting a second copy");
+         trace << QStringLiteral("instance-unreachable");
+         return 1;
+diff --git a/src/app/AppStartup.cpp b/src/app/AppStartup.cpp
+index 7e4c3eb..339440c 100644
+--- a/src/app/AppStartup.cpp
++++ b/src/app/AppStartup.cpp
+@@ -34,7 +34,7 @@ namespace freetunnel {
+ QStringList qtCatalogueDirs(const QString &qtTranslationsPath, const QString &appDir)
+ {
+     return {qtTranslationsPath,
+-            // Windows: windeployqt's merged qt_<lang>.qm beside FreeTunnel.exe.
++            // Windows: windeployqt's merged qt_<lang>.qm beside DPIMask.exe.
+             appDir + QStringLiteral("/translations"),
+             appDir + QStringLiteral("/../translations"),
+             // macOS: Contents/Resources/translations, from Contents/MacOS.
+@@ -236,7 +236,7 @@ constexpr char kPeerIsSameUser[] = "freetunnelPeerIsSameUser";
+ // Unix, once the listener has read it on Windows (handOverInstanceMessage()). A
+ // connection accepted in between had seen its peer leave, and let go of its
+ // descriptor, by the time it was handed on: the check had nothing to ask and
+-// refused it, and the link the user clicked while FreeTunnel was starting was
++// refused it, and the link the user clicked while DPIMask was starting was
+ // lost.
+ class InstanceServer : public QLocalServer {
+ public:
+@@ -305,10 +305,10 @@ static bool authorizeInstanceMessage(const QByteArray &buf, QLocalSocket *c, qin
+ }
+ 
+ // A launch reads the token from the store to reach this instance, and the token
+-// can go from there while this instance runs. An older FreeTunnel quitting
++// can go from there while this instance runs. An older DPIMask quitting
+ // through an update compares the stored token with its own and then deletes it,
+ // two calls to the store, and a token this instance wrote between them was
+-// deleted with it: every later launch and link found FreeTunnel running and
++// deleted with it: every later launch and link found DPIMask running and
+ // could hand it nothing, until it was restarted. So the same token goes back,
+ // a few seconds after the listener is wired and whenever a launch could not
+ // show it.
+@@ -425,7 +425,7 @@ void handleInstanceConnection(QLocalSocket *c, QLocalServer *server, Backend &ba
+ }
+ 
+ // How long after the listener is wired its token is looked for once more
+-// (keepInstanceTokenStored()). An older FreeTunnel that started this one, as an
++// (keepInstanceTokenStored()). An older DPIMask that started this one, as an
+ // update does, can delete it as it quits: moments after it was written, if at
+ // all. FT_TEST_TOKEN_RECHECK_MS sets it in a test build.
+ static int tokenRecheckMs()
+diff --git a/src/app/Backend.cpp b/src/app/Backend.cpp
+index bac9fde..fef1714 100644
+--- a/src/app/Backend.cpp
++++ b/src/app/Backend.cpp
+@@ -59,7 +59,7 @@ Backend::Backend(QObject *parent) : QObject(parent) {
+         trimLogFile();
+         loadLogTail();
+         appendLog(QStringLiteral("INFO"),
+-                  tr("FreeTunnel %1 started").arg(appVersion()));
++                  tr("DPIMask %1 started").arg(appVersion()));
+     }
+ 
+     // Background update check: badge Settings when a newer release exists.
+@@ -214,7 +214,7 @@ struct HelperTemplate {
+     const char *text;
+ };
+ const HelperTemplate kHelperTemplates[] = {
+-        {"QObject", QT_TRANSLATE_NOOP("QObject", "wintun.dll is missing next to FreeTunnel.exe (%1). "
++        {"QObject", QT_TRANSLATE_NOOP("QObject", "wintun.dll is missing next to DPIMask.exe (%1). "
+                                                  "Reinstall from the official installer.")},
+         {"QtTrustTunnelClient", QT_TRANSLATE_NOOP("QtTrustTunnelClient", "Failed parsing config: %1")},
+         {"QtTrustTunnelClient",
+@@ -258,7 +258,7 @@ QString Backend::friendlyVpnError(const QString &m) const
+     // and the attempt is tried again until there is one. Its own words name an
+     // interface and a function, in English, every time it is tried.
+     if (m.contains(QLatin1String("Couldn't detect active network interface")))
+-        return tr("No network connection. FreeTunnel will connect as soon as there is one.");
++        return tr("No network connection. DPIMask will connect as soon as there is one.");
+     static const QLatin1String failedPrefix("Connection failed:");
+     if (m.startsWith(failedPrefix, Qt::CaseInsensitive))
+         return friendlyConnectFailure(m.mid(failedPrefix.size()).trimmed());
+diff --git a/src/app/BackendConfigCreate.cpp b/src/app/BackendConfigCreate.cpp
+index d2ab5b8..c338fa3 100644
+--- a/src/app/BackendConfigCreate.cpp
++++ b/src/app/BackendConfigCreate.cpp
+@@ -152,7 +152,7 @@ bool keepOnlyTheCertificates(ParsedCreateConfig *out, QString *err)
+ // an unknown key, and the form has no switch for it, so it is carried over here
+ // too; a new config has no file, and gets the default.
+ // The one exception is a listener other than the tunnel, such as a SOCKS proxy:
+-// FreeTunnel runs the tunnel, and the core refuses a config that names two
++// DPIMask runs the tunnel, and the core refuses a config that names two
+ // (see carryOverUnknownTables).
+ void keepWhatTheFormDoesNotShow(const QString &existingToml, freetunnel::ConfigToml *ct)
+ {
+diff --git a/src/app/BackendHotkeys.cpp b/src/app/BackendHotkeys.cpp
+index 0b91f61..95053ad 100644
+--- a/src/app/BackendHotkeys.cpp
++++ b/src/app/BackendHotkeys.cpp
+@@ -175,7 +175,7 @@ QHotkey *Backend::makeHotkey(const QString &seq, const QString &label,
+     }
+     // The field refuses these too; this is for a combo saved before it did, or
+     // written into the settings by hand. Registered, a bare Enter or letter stops
+-    // reaching every other application for as long as FreeTunnel runs.
++    // reaching every other application for as long as DPIMask runs.
+     if (!isSafeGlobalHotkey(s)) {
+         appendLog(QStringLiteral("WARN"),
+                   tr("Hotkey “%1” (%2) has no Ctrl, Alt or Meta, so it would take that key "
+diff --git a/src/app/BackendUpdates.cpp b/src/app/BackendUpdates.cpp
+index 66ce5fc..7c60913 100644
+--- a/src/app/BackendUpdates.cpp
++++ b/src/app/BackendUpdates.cpp
+@@ -18,7 +18,7 @@
+ 
+ // ---------- updater ----------
+ 
+-// Whether installing this release closes FreeTunnel, taking the tunnel down with
++// Whether installing this release closes DPIMask, taking the tunnel down with
+ // it: on Windows the installer replaces it, and an AppImage is replaced and then
+ // restarted (applyLinuxUpdate). A function rather than a constant per platform:
+ // a lambda that captures a constant is a warning to clang, an error under -Werror.
+@@ -96,7 +96,7 @@ static bool swapInAppImage(const QString &download, const QString &current, cons
+ // listener, which unlinks the name. Only unlinking it, as this used to, left the
+ // listener listening — and the application destroys it on the way out, and a
+ // listener being destroyed unlinks its name again: by then the replacement's
+-// socket. The new FreeTunnel ran on where nothing could reach it, and the next
++// socket. The new DPIMask ran on where nothing could reach it, and the next
+ // launch or tt:// link started a second one beside it. A closed listener has no
+ // name left to unlink. Connections it already accepted are sockets of their own
+ // and keep working.
+@@ -110,7 +110,7 @@ static void giveUpTheInstanceName(QLocalServer *server)
+ 
+ // The replacement did not start, so this instance stays — and has to be the one
+ // a second launch or a tt:// link reaches again, or that starts a second
+-// FreeTunnel beside it. Listening again on the listener closed for the
++// DPIMask beside it. Listening again on the listener closed for the
+ // replacement puts it back. The token was never touched. False, with the same
+ // warning as when the application first listens, when the name could not be
+ // taken again; true when there is no listener to put back.
+@@ -188,20 +188,20 @@ void Backend::applyLinuxUpdate(const QString &path)
+     giveUpTheInstanceName(m_instanceServer);
+ 
+     // This used to quit whether or not the replacement started, which left no
+-    // FreeTunnel running at all when it did not. Now this one stays, on the build
++    // DPIMask running at all when it did not. Now this one stays, on the build
+     // it was started from, and says so. Started the way this copy was: an AppImage
+     // that had to be unpacked rather than mounted may not start any other way.
+     if (!QProcess::startDetached(current, running.launchArguments())) {
+         restoreAppImage(current, backup);
+         if (!listenAsTheRunningInstanceAgain(m_instanceServer)) {
+             appendLog(QStringLiteral("WARN"),
+-                      tr("FreeTunnel could not take back the name later launches look for "
+-                         "(%1), so opening it again may start a second FreeTunnel. Restart "
+-                         "FreeTunnel to fix this.")
++                      tr("DPIMask could not take back the name later launches look for "
++                         "(%1), so opening it again may start a second DPIMask. Restart "
++                         "DPIMask to fix this.")
+                               .arg(m_instanceServer->errorString()));
+         }
+         failAppImageUpdate([] { return tr("The new version could not be started — "
+-                                          "FreeTunnel was left as it was."); },
++                                          "DPIMask was left as it was."); },
+                            path);
+         return;
+     }
+@@ -262,7 +262,7 @@ void Backend::wireUpdaterSignals()
+                 // Said before the click, not after.
+                 const bool closesApp = installingClosesTheApp(info);
+                 setUpdateMessage([version, closesApp] {
+-                    return closesApp ? tr("Version %1 is available — installing it closes FreeTunnel").arg(version)
++                    return closesApp ? tr("Version %1 is available — installing it closes DPIMask").arg(version)
+                                      : tr("Version %1 is available").arg(version);
+                 });
+                 emit updateChanged();
+@@ -313,7 +313,7 @@ void Backend::wireUpdaterSignals()
+ void Backend::onUpdateDownloadReady(const QString &path)
+ {
+     // Quitting, or saying the installer opened, when it never started
+-    // left the user with no FreeTunnel, or a line waiting on nothing.
++    // left the user with no DPIMask, or a line waiting on nothing.
+ #if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+     if (!startInstaller(path)) {
+         m_updateState = QStringLiteral("error");
+@@ -331,7 +331,7 @@ void Backend::onUpdateDownloadReady(const QString &path)
+     // running with nothing left to stop them. Quitting here runs the
+     // ordinary shutdown — tunnel down, helper stopped — while the
+     // installer waits for us (see win/installer.nsi).
+-    setUpdateMessage([] { return tr("Update downloaded — closing FreeTunnel to install it"); });
++    setUpdateMessage([] { return tr("Update downloaded — closing DPIMask to install it"); });
+     emit updateChanged();
+     quitApplication();
+ #elif defined(Q_OS_MACOS)
+diff --git a/src/app/PlatformAutoStart.cpp b/src/app/PlatformAutoStart.cpp
+index ee73079..3749764 100644
+--- a/src/app/PlatformAutoStart.cpp
++++ b/src/app/PlatformAutoStart.cpp
+@@ -79,7 +79,7 @@ bool platformAutoStartEnabled()
+     // Windows started nothing at logon while the toggle said "on".
+     QSettings r(runKey(), QSettings::NativeFormat);
+     const QString target =
+-            autoStartProgramFromRunValue(r.value(QStringLiteral("FreeTunnel")).toString());
++            autoStartProgramFromRunValue(r.value(QStringLiteral("DPIMask")).toString());
+     return !target.isEmpty() && QFileInfo::exists(target);
+ }
+ 
+@@ -87,11 +87,11 @@ void setPlatformAutoStart(bool enabled)
+ {
+     QSettings r(runKey(), QSettings::NativeFormat);
+     if (enabled) {
+-        r.setValue(QStringLiteral("FreeTunnel"),
++        r.setValue(QStringLiteral("DPIMask"),
+                    QLatin1Char('"') + QDir::toNativeSeparators(QCoreApplication::applicationFilePath())
+                            + QLatin1Char('"'));
+     } else {
+-        r.remove(QStringLiteral("FreeTunnel"));
++        r.remove(QStringLiteral("DPIMask"));
+     }
+ }
+ #elif defined(Q_OS_MACOS)
+@@ -172,7 +172,7 @@ static QString desktopExecQuoted(const QString &path)
+ 
+ // What the autostart entry should launch. Under an AppImage,
+ // applicationFilePath() points inside the runtime's temporary FUSE mount
+-// (/tmp/.mount_FreeTuXXXXXX/usr/bin/FreeTunnel), which is unmounted on exit and
++// (/tmp/.mount_FreeTuXXXXXX/usr/bin/DPIMask), which is unmounted on exit and
+ // gets a fresh random suffix on every run — an autostart entry pointing there is
+ // dead the moment it is written. The .AppImage file itself is stable, so record
+ // that when the kernel confirms we are running from one, started the way this
+@@ -191,7 +191,7 @@ static void writeDesktopAutostart(const QString &path)
+     QDir().mkpath(QFileInfo(path).absolutePath());
+     QFile f(path);
+     if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+-        f.write(QStringLiteral("[Desktop Entry]\nType=Application\nName=FreeTunnel\n"
++        f.write(QStringLiteral("[Desktop Entry]\nType=Application\nName=DPIMask\n"
+                                "Exec=%1\nTerminal=false\nX-GNOME-Autostart-enabled=true\n")
+                         .arg(autoStartCommand())
+                         .toUtf8());
+diff --git a/src/app/WindowsChrome.cpp b/src/app/WindowsChrome.cpp
+index abdb627..20ec547 100644
+--- a/src/app/WindowsChrome.cpp
++++ b/src/app/WindowsChrome.cpp
+@@ -15,7 +15,7 @@ namespace {
+ 
+ // Hands the window's darkChrome property to the agent as its "dark-mode", now and
+ // whenever it changes, so the thin Windows 11 border and the system menu follow
+-// FreeTunnel's own light/dark switch rather than the OS setting.
++// DPIMask's own light/dark switch rather than the OS setting.
+ class DarkModeFollower : public QObject {
+     Q_OBJECT
+ public:
+diff --git a/src/core/AppSettings.cpp b/src/core/AppSettings.cpp
+index e0cf68d..25c314d 100644
+--- a/src/core/AppSettings.cpp
++++ b/src/core/AppSettings.cpp
+@@ -237,7 +237,7 @@ static void loadHotkeys(const QSettings &s, AppSettings &out)
+ }
+ 
+ AppSettings loadAppSettings() {
+-    // Uses QCoreApplication's organization/application name (set to "FreeTunnel"
++    // Uses QCoreApplication's organization/application name (set to "DPIMask"
+     // in main()), so tests can redirect the store to an isolated domain.
+     QSettings s;
+     AppSettings out;
+diff --git a/src/core/ConfigImport.cpp b/src/core/ConfigImport.cpp
+index ee14262..67ce92d 100644
+--- a/src/core/ConfigImport.cpp
++++ b/src/core/ConfigImport.cpp
+@@ -18,14 +18,14 @@ QString subscriptionOnlyRefusal()
+ {
+     return QCoreApplication::translate("ConfigImport",
+                                        "Subscription links aren't supported yet. Ask your provider for "
+-                                       "a regular link, or update FreeTunnel when subscriptions arrive.");
++                                       "a regular link, or update DPIMask when subscriptions arrive.");
+ }
+ 
+ QString newerCoreRefusal()
+ {
+     return QCoreApplication::translate("ConfigImport",
+                                        "This server needs a newer TrustTunnel core than this version of "
+-                                       "FreeTunnel uses.");
++                                       "DPIMask uses.");
+ }
+ 
+ QString subscriptionNotKeptNote()
+diff --git a/src/core/ConfigToml.cpp b/src/core/ConfigToml.cpp
+index 67c2eac..e5923c5 100644
+--- a/src/core/ConfigToml.cpp
++++ b/src/core/ConfigToml.cpp
+@@ -211,7 +211,7 @@ static void carryOverUnknownTables(const QList<QPair<QString, QString>> &tables,
+         } else if (header == QLatin1String("listener.tun")) {
+             c.tunSection = normalizeBody(body);
+         } else if (header == QLatin1String("listener") || header.startsWith(QLatin1String("listener."))) {
+-            // Every other listener is left out. FreeTunnel runs the tunnel, and
++            // Every other listener is left out. DPIMask runs the tunnel, and
+             // buildConfigToml() always writes [listener.tun]: a [listener.socks]
+             // kept beside it, as TrustTunnel's own client sets up a local proxy,
+             // named two listeners, and the core refuses such a config outright.
+diff --git a/src/core/ConfigTomlValues.cpp b/src/core/ConfigTomlValues.cpp
+index 9b512ba..5d6e5a5 100644
+--- a/src/core/ConfigTomlValues.cpp
++++ b/src/core/ConfigTomlValues.cpp
+@@ -99,7 +99,7 @@ bool isCertificateDer(const QByteArray &der)
+ namespace {
+ 
+ // Whether the bytes are one or more certificates, one after another, and nothing
+-// else. FreeTunnel 1.1.9 and earlier put a link's whole chain into one block, and
++// else. DPIMask 1.1.9 and earlier put a link's whole chain into one block, and
+ // OpenSSL, which the core reads it with, takes the first certificate of it as the
+ // pin. Read as one certificate, such a block held none, and a config stored back
+ // then lost its pin at the next start.
+diff --git a/src/core/CredentialStore.cpp b/src/core/CredentialStore.cpp
+index f00203e..0e1a9b6 100644
+--- a/src/core/CredentialStore.cpp
++++ b/src/core/CredentialStore.cpp
+@@ -68,9 +68,9 @@ namespace {
+ QString winTargetPrefix()
+ {
+ #if defined(FT_ENABLE_TEST_HOOKS)
+-    return QStringLiteral("FreeTunnelTest/");
++    return QStringLiteral("DPIMaskTest/");
+ #else
+-    return QStringLiteral("FreeTunnel/");
++    return QStringLiteral("DPIMask/");
+ #endif
+ }
+ #endif
+@@ -242,7 +242,7 @@ bool secretServiceStore(const QString &key, const QString &password)
+     if (tool.isEmpty())
+         return false;
+     QProcess p;
+-    p.start(tool, {QStringLiteral("store"), QStringLiteral("--label=FreeTunnel"),
++    p.start(tool, {QStringLiteral("store"), QStringLiteral("--label=DPIMask"),
+                    QStringLiteral("service"), credentialServiceName(),
+                    QStringLiteral("account"), key});
+     if (!p.waitForStarted(3000))
+@@ -489,7 +489,7 @@ static bool doStorePassword(const QString &key, const QString &password)
+     cred.CredentialBlobSize = static_cast<DWORD>(secret.size());
+     cred.CredentialBlob = reinterpret_cast<LPBYTE>(const_cast<char *>(secret.constData()));
+     cred.Persist = CRED_PERSIST_LOCAL_MACHINE;
+-    cred.UserName = const_cast<LPWSTR>(L"FreeTunnel");
++    cred.UserName = const_cast<LPWSTR>(L"DPIMask");
+     return CredWriteW(&cred, 0) != FALSE;
+ #else
+ #if defined(FT_HAVE_LIBSECRET)
+diff --git a/src/core/CredentialStoreLibsecret.cpp b/src/core/CredentialStoreLibsecret.cpp
+index 40fd060..55375a3 100644
+--- a/src/core/CredentialStoreLibsecret.cpp
++++ b/src/core/CredentialStoreLibsecret.cpp
+@@ -39,7 +39,7 @@ bool libsecretStore(const QString &key, const QString &password)
+ {
+     GError *error = nullptr;
+     const bool ok = secret_password_store_sync(
+-            &libsecretSchema(), SECRET_COLLECTION_DEFAULT, "FreeTunnel",
++            &libsecretSchema(), SECRET_COLLECTION_DEFAULT, "DPIMask",
+             password.toUtf8().constData(), nullptr, &error, "account",
+             key.toUtf8().constData(), nullptr);
+     if (error)
+diff --git a/src/core/GeoListUpdater.cpp b/src/core/GeoListUpdater.cpp
+index bb42c0e..aab034a 100644
+--- a/src/core/GeoListUpdater.cpp
++++ b/src/core/GeoListUpdater.cpp
+@@ -51,7 +51,7 @@ void GeoListUpdater::request(const QUrl &url)
+     req.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
+     req.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
+     req.setAttribute(QNetworkRequest::AuthenticationReuseAttribute, QNetworkRequest::Manual);
+-    req.setRawHeader("User-Agent", "FreeTunnel-GeoLists");
++    req.setRawHeader("User-Agent", "DPIMask-GeoLists");
+     m_reply = m_manager->get(req);
+     m_reply->setReadBufferSize(256 * 1024);
+     connect(m_reply, &QNetworkReply::readyRead, this, &GeoListUpdater::consumeAvailable);
+diff --git a/src/core/InstanceControl.cpp b/src/core/InstanceControl.cpp
+index db458cd..81ee79d 100644
+--- a/src/core/InstanceControl.cpp
++++ b/src/core/InstanceControl.cpp
+@@ -135,7 +135,7 @@ bool restoreInstanceAuthToken(const QString &token)
+ namespace {
+ 
+ // The one name every build up to 1.2.2 listened on, whoever ran it.
+-const QString kSharedInstanceName = QStringLiteral("FreeTunnelInstance");
++const QString kSharedInstanceName = QStringLiteral("DPIMaskInstance");
+ 
+ #if defined(Q_OS_WIN)
+ QByteArray processUserSid(HANDLE process); // below, with the pipe-peer checks
+@@ -199,7 +199,7 @@ QByteArray sessionRuntimeDir()
+ // $XDG_RUNTIME_DIR, or, where it is not set, the directory it names in this
+ // user's sessions; either only when it passes the same checks. A command run
+ // from cron, over ssh, after su - or by a hotkey daemon started outside the
+-// session has no variable, and looked only in /tmp: it missed the FreeTunnel
++// session has no variable, and looked only in /tmp: it missed the DPIMask
+ // the desktop had started and started a second one beside it.
+ QString privateRuntimeDir()
+ {
+@@ -212,7 +212,7 @@ QString privateRuntimeDir()
+ // The test override, or empty when there is none.
+ //
+ // It matters during development: run a debug build from a checkout under the
+-// production name and it connects to whatever FreeTunnel the developer happens
++// production name and it connects to whatever DPIMask the developer happens
+ // to have running — forwarding a command into their live app and then exiting
+ // as though it were the second instance.
+ QString testInstanceNameOverride()
+@@ -235,7 +235,7 @@ QString testInstanceNameOverride()
+ // override.
+ //
+ // One per user. A single name for the machine belonged to whoever started
+-// FreeTunnel first: a Windows pipe name is one namespace for every session, and
++// DPIMask first: a Windows pipe name is one namespace for every session, and
+ // on Linux the socket sat in the shared /tmp. Everyone else's launches found no
+ // instance of theirs there and could not listen on it either, so every launch
+ // and every link of theirs started another full copy.
+@@ -265,10 +265,10 @@ QString instanceServerName()
+ // listener there that lets no one in is not given way to
+ // (whatAFailedConnectMeans()).
+ //
+-// The shared name is tried for an update installed while an older FreeTunnel
++// The shared name is tried for an update installed while an older DPIMask
+ // keeps running. That one listens on the shared name, and a launch of the new
+ // build that looked only for its own would find nothing and start a second copy
+-// beside it. On Linux the name in /tmp comes before it, for a FreeTunnel started
++// beside it. On Linux the name in /tmp comes before it, for a DPIMask started
+ // with no runtime directory to use, as 1.2.3 was wherever $XDG_RUNTIME_DIR was
+ // not set, such as from a shell outside the desktop session.
+ QStringList instanceServerNames()
+@@ -627,7 +627,7 @@ namespace {
+ // and another account can hold even this user's name: by creating the pipe
+ // first on Windows, or the socket in the shared /tmp. Taken for ours whatever
+ // it was, a listener there that answers no one, its backlog kept full or its
+-// one pipe instance kept taken, made every launch exit, and FreeTunnel did not
++// one pipe instance kept taken, made every launch exit, and DPIMask did not
+ // start at all.
+ bool heldByThisUser(const QString &socketName, QLocalSocket::LocalSocketError error)
+ {
+@@ -715,7 +715,7 @@ std::optional<ForwardResult> connectToInstance(QLocalSocket &probe, const QStrin
+     // Nor to one reached through a link. connect() follows it, so another
+     // account can point a name in /tmp at any socket of this user's, such as the
+     // session bus: that passes the peer check, takes the token and the link, and
+-    // this launch exits without FreeTunnel starting.
++    // this launch exits without DPIMask starting.
+     if (!socketFileIsThisUsers(socketName))
+         return ForwardResult::NoInstance;
+ #endif
+diff --git a/src/core/SubscriptionFetcher.cpp b/src/core/SubscriptionFetcher.cpp
+index a304f33..daaade0 100644
+--- a/src/core/SubscriptionFetcher.cpp
++++ b/src/core/SubscriptionFetcher.cpp
+@@ -176,13 +176,13 @@ constexpr const char *kDenied =
+ constexpr const char *kNoUpdates = QT_TRANSLATE_NOOP("SubscriptionFetcher", "This server doesn't offer updates now");
+ constexpr const char *kInvalid = QT_TRANSLATE_NOOP("SubscriptionFetcher", "The server sent an invalid update");
+ constexpr const char *kNewerFormat =
+-        QT_TRANSLATE_NOOP("SubscriptionFetcher", "Update FreeTunnel to read this subscription");
++        QT_TRANSLATE_NOOP("SubscriptionFetcher", "Update DPIMask to read this subscription");
+ constexpr const char *kNewerCore = QT_TRANSLATE_NOOP(
+-        "SubscriptionFetcher", "This subscription needs a newer TrustTunnel core than this version of FreeTunnel uses");
++        "SubscriptionFetcher", "This subscription needs a newer TrustTunnel core than this version of DPIMask uses");
+ 
+ // A 403 is the operator turning updates off, and a 404, 405 or 407 a server with
+ // no subscription here: nothing automatic tries again until the user does. So
+-// does what only a new link or a new FreeTunnel can fix; what may pass, such as
++// does what only a new link or a new DPIMask can fix; what may pass, such as
+ // a lost network, backs off.
+ constexpr std::pair<Fetch, Outcome> kFetchOutcomes[] = {
+     {Fetch::None, {"ok", Policy::Normal, ""}},
+@@ -348,7 +348,7 @@ void SubscriptionFetcher::sendRequest()
+     QNetworkRequest request(target);
+     if (!m_authorization.isEmpty())
+         request.setRawHeader("Authorization", m_authorization);
+-    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("FreeTunnel/%1").arg(m_appVersion));
++    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("DPIMask/%1").arg(m_appVersion));
+     request.setRawHeader("Accept", "application/json");
+     request.setRawHeader("Accept-Encoding", "identity");
+     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+diff --git a/src/core/UpdateChecker.cpp b/src/core/UpdateChecker.cpp
+index d648384..3b4a6f4 100644
+--- a/src/core/UpdateChecker.cpp
++++ b/src/core/UpdateChecker.cpp
+@@ -177,7 +177,7 @@ QString replyError(const QNetworkReply *reply)
+ QNetworkRequest apiRequest(const QString &path, const QString &currentVersion)
+ {
+     QNetworkRequest req(githubApiUrl(path));
+-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("FreeTunnel/%1").arg(currentVersion));
++    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("DPIMask/%1").arg(currentVersion));
+     req.setRawHeader("Accept", "application/vnd.github+json");
+     return req;
+ }
+@@ -476,7 +476,7 @@ void UpdateChecker::downloadLatest()
+ void UpdateChecker::fetchChecksumsThenInstaller()
+ {
+     QNetworkRequest req(m_latest.checksumsUrl);
+-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("FreeTunnel/%1").arg(m_currentVersion));
++    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("DPIMask/%1").arg(m_currentVersion));
+     QNetworkReply *reply = m_nam->get(req);
+     connect(reply, &QNetworkReply::downloadProgress, this,
+             [this](qint64 received, qint64 total) {
+@@ -514,7 +514,7 @@ void UpdateChecker::onChecksumsFetched(QNetworkReply *reply)
+ void UpdateChecker::fetchSignature()
+ {
+     QNetworkRequest req(m_latest.signatureUrl);
+-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("FreeTunnel/%1").arg(m_currentVersion));
++    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("DPIMask/%1").arg(m_currentVersion));
+     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+     QNetworkReply *reply = m_nam->get(req);
+     connect(reply, &QNetworkReply::downloadProgress, this,
+@@ -580,7 +580,7 @@ void UpdateChecker::fetchInstaller()
+     }
+ 
+     QNetworkRequest req(m_latest.installerUrl);
+-    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("FreeTunnel/%1").arg(m_currentVersion));
++    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("DPIMask/%1").arg(m_currentVersion));
+     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+ 
+     QNetworkReply *reply = m_nam->get(req);
+diff --git a/src/vpn/installed_helper.cpp b/src/vpn/installed_helper.cpp
+index 1858940..711f69a 100644
+--- a/src/vpn/installed_helper.cpp
++++ b/src/vpn/installed_helper.cpp
+@@ -192,7 +192,7 @@ bool installPackaged()
+     // The .deb has already installed this complete runtime under /opt. Copy it
+     // while retaining the same activation/locking rules as signed updates.
+     const QString source = QStringLiteral("/opt/freetunnel");
+-    const QString exe = source + QStringLiteral("/bin/FreeTunnel");
++    const QString exe = source + QStringLiteral("/bin/DPIMask");
+     if (QFileInfo(QCoreApplication::applicationFilePath()).canonicalFilePath() != exe
+         || !protectedDirectory(source, false)) return false;
+     const Lock lock;
+diff --git a/src/vpn/installed_helper_policy.cpp b/src/vpn/installed_helper_policy.cpp
+index 01e0c5e..207d620 100644
+--- a/src/vpn/installed_helper_policy.cpp
++++ b/src/vpn/installed_helper_policy.cpp
+@@ -25,9 +25,9 @@ QString rootDirectory()
+ QString executableRelativePath()
+ {
+ #ifdef Q_OS_MACOS
+-    return QStringLiteral("FreeTunnel.app/Contents/MacOS/FreeTunnel");
++    return QStringLiteral("DPIMask.app/Contents/MacOS/DPIMask");
+ #else
+-    return QStringLiteral("bin/FreeTunnel");
++    return QStringLiteral("bin/DPIMask");
+ #endif
+ }
+ 
+diff --git a/src/vpn/qt_trusttunnel_client.cpp b/src/vpn/qt_trusttunnel_client.cpp
+index 0271f94..535e09b 100644
+--- a/src/vpn/qt_trusttunnel_client.cpp
++++ b/src/vpn/qt_trusttunnel_client.cpp
+@@ -171,7 +171,7 @@ void QtTrustTunnelClient::teardownClient() {
+ #endif
+ }
+ 
+-// The core honours more of a config than FreeTunnel ever writes, and this object
++// The core honours more of a config than DPIMask ever writes, and this object
+ // runs in the ELEVATED helper, on whatever TOML the unprivileged GUI hands it.
+ // That TOML still carries every key an imported file had — ConfigToml keeps what
+ // it does not understand, so that a round trip loses nothing — and a process that
+@@ -192,7 +192,7 @@ void QtTrustTunnelClient::teardownClient() {
+ //
+ // Only these: the rest of the file still reaches the core, and a key a newer core
+ // starts reading is caught by scripts/verify_upstream_patch.sh, not here. Cleared
+-// rather than checked: FreeTunnel writes none of them, and an interface the
++// rather than checked: DPIMask writes none of them, and an interface the
+ // system names works just as well as one the file named.
+ void QtTrustTunnelClient::clearKeysRootMustNotTakeFromAConfig(ag::TrustTunnelConfig &config)
+ {
+diff --git a/src/vpn/vpn_helper_client.cpp b/src/vpn/vpn_helper_client.cpp
+index 37135bc..538aaae 100644
+--- a/src/vpn/vpn_helper_client.cpp
++++ b/src/vpn/vpn_helper_client.cpp
+@@ -336,7 +336,7 @@ bool VpnHelperClient::configureProductionHelper()
+     // QObject::tr and the helper's wording, so the one translation serves both.
+     const QString appDir = QCoreApplication::applicationDirPath();
+     if (!QFile::exists(appDir + QStringLiteral("/wintun.dll"))) {
+-        fail(QObject::tr("wintun.dll is missing next to FreeTunnel.exe (%1). "
++        fail(QObject::tr("wintun.dll is missing next to DPIMask.exe (%1). "
+                          "Reinstall from the official installer.")
+                      .arg(appDir));
+         return false;
+@@ -589,7 +589,7 @@ void VpnHelperClient::handleChallengeEvent(const QJsonObject &ev) {
+                 vpn_helper::authProof(m_token, QString::fromLatin1(vpn_helper::kHelperRole),
+                                       m_guiNonce))) {
+         fail(tr("The process answering on the helper port could not prove it is the "
+-                "FreeTunnel helper — refusing to send the config."));
++                "DPIMask helper — refusing to send the config."));
+         return;
+     }
+     const QString helperNonce = ev.value("nonce").toString();
+diff --git a/src/vpn/vpn_helper_elevation.cpp b/src/vpn/vpn_helper_elevation.cpp
+index d211458..7732c39 100644
+--- a/src/vpn/vpn_helper_elevation.cpp
++++ b/src/vpn/vpn_helper_elevation.cpp
+@@ -281,7 +281,7 @@ enum class ServiceStart { Started, NotInstalled, Unusable };
+ // prompted helper gets on its command line, and goes through the same handshake.
+ //
+ // Only the service of this very install: one registered by another copy of
+-// FreeTunnel (an older install elsewhere, while this one runs from a folder of
++// DPIMask (an older install elsewhere, while this one runs from a folder of
+ // its own) would start a helper this GUI may not speak to. *why says why a
+ // service that is there could not be used.
+ ServiceStart startHelperService(const QString &exe, quint16 port, const QString &tokenPath,
+@@ -297,7 +297,7 @@ ServiceStart startHelperService(const QString &exe, quint16 port, const QString
+         return ServiceStart::Unusable;
+     }
+     if (!isSameFile(helperServiceProgram(svc.get()), exe)) {
+-        *why = QStringLiteral("it belongs to another copy of FreeTunnel");
++        *why = QStringLiteral("it belongs to another copy of DPIMask");
+         return ServiceStart::Unusable;
+     }
+     if (!waitUntilServiceStopped(svc.get(), kServiceBusyWaitMs)) {
+diff --git a/src/vpn/vpn_helper_server.cpp b/src/vpn/vpn_helper_server.cpp
+index d15db43..a4cd443 100644
+--- a/src/vpn/vpn_helper_server.cpp
++++ b/src/vpn/vpn_helper_server.cpp
+@@ -38,7 +38,7 @@ static bool prepareWindowsHelperRuntime(QString *errOut)
+     SetDllDirectoryW(reinterpret_cast<LPCWSTR>(dir.utf16()));
+     if (!QFile::exists(dir + QStringLiteral("/wintun.dll"))) {
+         if (errOut) {
+-            *errOut = QObject::tr("wintun.dll is missing next to FreeTunnel.exe (%1). "
++            *errOut = QObject::tr("wintun.dll is missing next to DPIMask.exe (%1). "
+                                   "Reinstall from the official installer.")
+                               .arg(dir);
+         }
+diff --git a/src/vpn/vpn_helper_service_win.cpp b/src/vpn/vpn_helper_service_win.cpp
+index 3fa9400..86f7eaa 100644
+--- a/src/vpn/vpn_helper_service_win.cpp
++++ b/src/vpn/vpn_helper_service_win.cpp
+@@ -1,6 +1,6 @@
+ // cppcheck-suppress-file missingIncludeSystem
+-// The helper as a Windows service: FreeTunnel --service, which the installer
+-// registers as FreeTunnelHelper (win/installer.nsi) to run as LocalSystem.
++// The helper as a Windows service: DPIMask --service, which the installer
++// registers as DPIMaskHelper (win/installer.nsi) to run as LocalSystem.
+ //
+ // Its point is the prompt it does not show. The helper used to be started with
+ // ShellExecuteEx "runas", which put a UAC prompt in front of every session; the
+@@ -134,7 +134,7 @@ int runVpnHelperService(int argc, char **argv)
+     std::wstring name = serviceName();
+     SERVICE_TABLE_ENTRYW table[] = {{name.data(), serviceMain}, {nullptr, nullptr}};
+     // Returns once the service has stopped. Fails at once when this process was
+-    // not started by the service control manager — FreeTunnel --service typed at
++    // not started by the service control manager — DPIMask --service typed at
+     // a prompt — and there is then nothing to do.
+     if (!StartServiceCtrlDispatcherW(table))
+         return 1;
